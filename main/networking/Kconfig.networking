@@ -1,0 +1,25 @@
+menu "Networking"
+
+    config HARDCODED_SSID
+        string "Hardcoded SSID"
+        help
+            The harcoded (fallback) value for the Wi-Fi SSID
+    
+    config HARDCODED_PASSWORD
+        string "Hardcoded Password"
+        help
+            The harcoded (fallback) value for the Wi-Fi password
+
+    config SERVER_DISCOVERY_RATE_SECONDS
+        int "Server Discovery Send Rate (in seconds)"
+        default 2
+        help
+            When not connected, how often the tracker should try to look for the server
+
+    config SENSOR_INFO_RATE_SECONDS
+        int "Sensor Info Send Rate (in seconds)"
+        default 1
+        help
+            How often the Sensor Info packet should be sent to the server
+
+endmenu

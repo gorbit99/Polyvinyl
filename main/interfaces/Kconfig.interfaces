@@ -1,0 +1,17 @@
+menu "Interfaces"
+
+    choice I2C_FREQUENCY
+        prompt "I2C Frequency"
+        default I2C_FREQUENCY_400K
+        help
+            The frequency of the I2C communications
+
+        config I2C_FREQUENCY_100K
+            bool "100kHz"
+        
+        config I2C_FREQUENCY_400K
+            bool "400KHz"
+
+    endchoice
+
+endmenu

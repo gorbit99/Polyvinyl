@@ -1,0 +1,17 @@
+menu "Sensors"
+
+    config SCL_PIN
+        int "SCL Pin"
+        range 0 255
+        help
+            The pin the SCL line of the I2C bus is attached to
+
+    config SDA_PIN
+        int "SDA Pin"
+        range 0 255
+        help
+            The pin the SDA line of the I2C bus is attached to
+
+    rsource "drivers/Kconfig.drivers"
+
+endmenu

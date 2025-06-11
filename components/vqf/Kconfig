@@ -1,0 +1,15 @@
+menu "VQF"
+
+config USE_SINGLE_PRECISION
+    bool "Use Single Precision Floats"
+    default y
+    help
+        If set, VQF will use single instead of double precision floating point math
+
+config NO_MOTION_BIAS_ESTIMATION
+    bool "Disable Motion Bias Estimation"
+    default n
+    help
+        Disables the motion bias estimation (MBE) feature of VQF
+
+endmenu

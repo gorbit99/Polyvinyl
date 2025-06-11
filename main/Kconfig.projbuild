@@ -1,0 +1,4 @@
+rsource "networking/Kconfig.networking"
+rsource "config/Kconfig.config"
+rsource "sensors/Kconfig.sensors"
+rsource "interfaces/Kconfig.interfaces"

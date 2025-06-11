@@ -1,0 +1,97 @@
+menu "ICM45686"
+
+    choice ICM45686_GYRO_ODR
+        prompt "ICM-45686 Gyro ODR (Hz)"
+        help
+            The output data rate of the ICM-45686 gyro sensor
+        default ICM45686_GYRO_ODR_400
+
+        config ICM45686_GYRO_ODR_6400
+            bool "6.4kHz"
+
+        config ICM45686_GYRO_ODR_3200
+            bool "3.2kHz"
+
+        config ICM45686_GYRO_ODR_1600
+            bool "1.6kHz"
+
+        config ICM45686_GYRO_ODR_800
+            bool "800Hz"
+
+        config ICM45686_GYRO_ODR_400
+            bool "400Hz"
+
+        config ICM45686_GYRO_ODR_200
+            bool "200Hz"
+
+        config ICM45686_GYRO_ODR_100
+            bool "100Hz"
+
+        config ICM45686_GYRO_ODR_50
+            bool "50Hz"
+
+        config ICM45686_GYRO_ODR_25
+            bool "25Hz"
+
+        config ICM45686_GYRO_ODR_12_5
+            bool "12.5Hz"
+
+        config ICM45686_GYRO_ODR_6_25
+            bool "6.25Hz"
+
+        config ICM45686_GYRO_ODR_3_125
+            bool "3.125Hz"
+
+        config ICM45686_GYRO_ODR_1_5625
+            bool "1.5625Hz"
+
+    endchoice
+
+    choice ICM45686_ACCEL_ODR
+        prompt "ICM-45686 Accel ODR (Hz)"
+        help
+            The output data rate of the ICM-45686 accel sensor
+        default ICM45686_ACCEL_ODR_100
+
+        config ICM45686_ACCEL_ODR_6400
+            bool "6.4kHz"
+
+        config ICM45686_ACCEL_ODR_3200
+            bool "3.2kHz"
+
+        config ICM45686_ACCEL_ODR_1600
+            bool "1.6kHz"
+
+        config ICM45686_ACCEL_ODR_800
+            bool "800Hz"
+
+        config ICM45686_ACCEL_ODR_400
+            bool "400Hz"
+
+        config ICM45686_ACCEL_ODR_200
+            bool "200Hz"
+
+        config ICM45686_ACCEL_ODR_100
+            bool "100Hz"
+
+        config ICM45686_ACCEL_ODR_50
+            bool "50Hz"
+
+        config ICM45686_ACCEL_ODR_25
+            bool "25Hz"
+
+        config ICM45686_ACCEL_ODR_12_5
+            bool "12.5Hz"
+
+        config ICM45686_ACCEL_ODR_6_25
+            bool "6.25Hz"
+
+        config ICM45686_ACCEL_ODR_3_125
+            bool "3.125Hz"
+
+        config ICM45686_ACCEL_ODR_1_5625
+            bool "1.5625Hz"
+
+    endchoice
+
+endmenu
