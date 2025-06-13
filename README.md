@@ -15,7 +15,7 @@
     - [X] I2C
     - [ ] SPI
 - Peripherals
-    - [ ] Reading battery and sending it to the server
+    - [X] Reading battery and sending it to the server
 - [ ] Serial commands
 - [ ] LED
 
