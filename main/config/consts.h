@@ -42,3 +42,9 @@ enum class MCUType : uint32_t {
 	Haritora = 8,
 	Reserved = 250,
 };
+
+enum class TrackerType : uint8_t {
+	Rotation = 0,
+	GloveLeft = 1,
+	GloveRight = 2,
+};

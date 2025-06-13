@@ -22,4 +22,22 @@ menu "Networking"
         help
             How often the Sensor Info packet should be sent to the server
 
+    config SENSOR_QUAT_RATE_HZ
+        int "Sensor Quaternion Send Rate (in Hz)"
+        default 100
+        help
+            How often sensor quaternion updates should be sent to the server
+
+    config TRACKER_RSSI_RATE_SECONDS
+        int "RSSI (Signal Strength) Send Rate (in seconds)"
+        default 2
+        help
+            How often the tracker should send rssi information to the server
+
+    config SENSOR_TEMPERATURE_RATE_HZ
+        int "Sensor Temperature Send Rate (in Hz)"
+        default 2
+        help
+            How often the tracker should send sensor Temperature information to the server
+
 endmenu

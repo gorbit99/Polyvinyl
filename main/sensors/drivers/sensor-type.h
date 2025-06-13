@@ -1,0 +1,24 @@
+#pragma once
+
+enum class SensorType {
+	Unknown = 0,
+	MPU9250,
+	MPU6500,
+	BNO080,
+	BNO085,
+	BNO055,
+	MPU6050,
+	BNO086,
+	BMI160,
+	ICM20948,
+	ICM42688,
+	BMI270,
+	LSM6DS3TRC,
+	LSM6DSV,
+	LSM6DSO,
+	LSM6DSR,
+	ICM45686,
+	ICM45605,
+	AdcResistance,
+	Empty = 255
+};

@@ -5,6 +5,10 @@
 #include <cstdint>
 
 #include "config/consts.h"
+#include "sensors/drivers/sensor-type.h"
+#include "sensors/sensor-data-type.h"
+#include "sensors/sensor-driver.h"
+#include "sensors/sensor-position.h"
 
 template <typename T>
 struct BigEndian {
@@ -74,21 +78,26 @@ struct VibratePacket {
 
 struct HandshakeReplyPacket {};
 
-// struct AccelPacket : PacketBase<SendPacketId::Accel> {
-// 	BigEndian<float> x;
-// 	BigEndian<float> y;
-// 	BigEndian<float> z;
-// 	uint8_t sensorId;
-// };
+struct AccelPacket {
+	BigEndian<float> x;
+	BigEndian<float> y;
+	BigEndian<float> z;
+	uint8_t sensorId;
+};
+
+struct BatteryLevelPacket {
+	BigEndian<float> voltage;
+	BigEndian<float> percentage;
+};
 
 struct SensorInfoPacket {
 	uint8_t sensorId;
-	uint8_t sensorState;
-	uint8_t sensorType;
+	SensorDriver::Status sensorStatus;
+	SensorType sensorType;
 	BigEndian<uint16_t> sensorConfigData;
 	bool hasCompletedRestCalibration;
-	uint8_t sensorPosition;
-	uint8_t sensorDataType;
+	SensorPosition sensorPosition;
+	SensorDataType sensorDataType;
 	// ADD NEW FIELDS ABOVE THIS COMMENT ^^^^^^^^
 	// WARNING! Only for debug purposes and SHOULD ALWAYS BE LAST IN THE PACKET.
 	// It WILL BE REMOVED IN THE FUTURE
@@ -96,4 +105,30 @@ struct SensorInfoPacket {
 	BigEndian<float> tpsCounterAveragedTps;
 	BigEndian<float> dataCounterAveragedTps;
 };
+
+enum class RotationDataType : uint8_t {
+	Normal = 1,
+	Correction = 2,
+};
+
+struct RotationDataPacket {
+	uint8_t sensorId;
+	RotationDataType dataType;
+	BigEndian<float> x;
+	BigEndian<float> y;
+	BigEndian<float> z;
+	BigEndian<float> w;
+	uint8_t accuracyInfo;
+};
+
+struct SignalStrengthPacket {
+	uint8_t sensorId;
+	uint8_t signalStrength;
+};
+
+struct TemperaturePacket {
+	uint8_t sensorId;
+	BigEndian<float> temperature;
+};
+
 #pragma pack(pop)

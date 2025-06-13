@@ -1,0 +1,39 @@
+menu "Peripherals"
+
+    menu "Battery"
+
+        config BATTERY_SHIELD_RESISTANCE
+            int "Battery Shield Resistance (in ohm)"
+            default 0
+            help
+                If using a module with a designated analogue pin (D1 mini), this is the single 
+                resistor you add in addition to the ones on the board, otherwise leave at 0
+
+        config BATTERY_DIVIDER_R1
+            int "Battery Voltage Divider R1 (in ohm)"
+            default 100000
+            help
+                The value of the resistor between the positive battery terminal and the battery pin
+
+        config BATTERY_DIVIDER_R2
+            int "Battery Voltage Divider R2 (in ohm)"
+            default 100000
+            help
+                The value of the resistor between the negative battery terminal (ground) and the battery pin
+
+        config BATTERY_READ_RATE_SECONDS
+            int "Battery Status Read Rate (in seconds)"
+            default 10
+            help
+                How often the battery's charge level should be read
+
+        config BATTERY_PIN
+            int "Battery ADC pin"
+            range 0 255
+            default 3
+            help
+                Which pin the battery voltage sense is attached to
+
+    endmenu
+    
+endmenu

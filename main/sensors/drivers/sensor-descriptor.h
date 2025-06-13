@@ -7,6 +7,7 @@
 #include <vqf.hpp>
 
 #include "interfaces/register-interface.h"
+#include "sensor-type.h"
 
 struct SampleInterface {
 	std::function<void(float*)> provideGyroSample;
@@ -16,6 +17,7 @@ struct SampleInterface {
 
 struct SensorDescriptor {
 	const char* name;
+	SensorType sensorType;
 
 	uint8_t deviceIdBase;
 

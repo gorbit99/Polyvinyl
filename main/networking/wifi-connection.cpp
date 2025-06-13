@@ -20,6 +20,8 @@
 #include "lwip/sockets.h"
 #include "networking/packet-builder.h"
 #include "networking/packet-parser.h"
+#include "peripherals/battery.h"
+#include "sensors/sensor-manager.h"
 #include "utils/visitor.h"
 
 static const char* TAG = "WIFICONN";
@@ -65,6 +67,9 @@ void WifiConnection::init() {
 	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifiConfig));
 	ESP_ERROR_CHECK(esp_wifi_start());
 
+	uint8_t mac[6];
+	esp_wifi_get_mac(WIFI_IF_STA, mac);
+
 	ESP_LOGI(TAG, "Wi-Fi initialized!");
 
 	EventBits_t bits = xEventGroupWaitBits(
@@ -79,13 +84,29 @@ void WifiConnection::init() {
 		ESP_LOGI(TAG, "Connected to Wi-Fi successfully!");
 	} else if (bits & WIFI_CONNECTION_FAILED_BIT) {
 		ESP_LOGI(TAG, "Failed to connect to Wi-Fi!");
+		return;
 	} else {
 		ESP_LOGI(TAG, "Unexpected event!");
+		return;
 	}
+
+	setConnectionStatus(ConnectionStatus::ConnectedToWifi);
 
 	setServerAddress(BROADCAST_ADDRESS, BASE_PORT);
 
-	xTaskCreate(serverSearchTask, "udp_client", 4096, this, 5, &serverSearchTaskHandle);
+	xTaskCreate(
+		serverSearchTask,
+		"server_search",
+		4096,
+		this,
+		5,
+		&serverSearchTaskHandle
+	);
+
+	Battery::getInstance().onBatteryReading([&](float voltage, float level) {
+		auto payload = packetBuilder.batteryLevel(voltage, level);
+		sendData(payload.data(), payload.size());
+	});
 }
 
 void WifiConnection::eventHandler(
@@ -131,13 +152,10 @@ void WifiConnection::sendData(const uint8_t* data, size_t length) {
 		reinterpret_cast<sockaddr*>(&destinationAddress),
 		sizeof(destinationAddress)
 	);
-	ESP_LOGI(TAG, "Socket: %d", socketHandle);
 	if (error < 0) {
 		ESP_LOGE(TAG, "Error occured during transmission! Error: %s", strerror(errno));
 		return;
 	}
-
-	ESP_LOGI(TAG, "Message sent! %d bytes", error);
 }
 
 void WifiConnection::serverSearchTask(void* userArg) {
@@ -145,9 +163,14 @@ void WifiConnection::serverSearchTask(void* userArg) {
 
 	auto payload = self->packetBuilder.handShake();
 
+	auto lastWakeTime = xTaskGetTickCount();
+
 	while (true) {
 		self->sendData(payload.data(), payload.size());
-		vTaskDelay(CONFIG_SERVER_DISCOVERY_RATE_SECONDS * 1000 / portTICK_PERIOD_MS);
+		vTaskDelayUntil(
+			&lastWakeTime,
+			CONFIG_SERVER_DISCOVERY_RATE_SECONDS * 1000 / portTICK_PERIOD_MS
+		);
 	}
 }
 
@@ -184,7 +207,7 @@ void WifiConnection::setServerAddress(std::string_view newAddress, uint16_t port
 	};
 	setsockopt(socketHandle, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 
-	xTaskCreate(udpReceiveTask, "udp_receive", 4096, this, 1, &receiveTaskHandle);
+	xTaskCreate(udpReceiveTask, "udp_receive", 4096, this, 5, &receiveTaskHandle);
 }
 
 void WifiConnection::udpReceiveTask(void* userArg) {
@@ -228,6 +251,10 @@ void WifiConnection::handlePacket(
 		},
 		[&](VibratePacket vibrate) { ESP_LOGI(TAG, "Got a vibrate packet"); },
 		[&](HandshakeReplyPacket handshake) {
+			if (getConnectionStatus() == ConnectionStatus::ConnectedToServer) {
+				return;
+			}
+
 			assert(sourceAddress.ss_family == AF_INET);
 
 			vTaskDelete(serverSearchTaskHandle);
@@ -237,15 +264,18 @@ void WifiConnection::handlePacket(
 			auto* address = inet_ntoa(source->sin_addr.s_addr);
 			auto port = ntohs(source->sin_port);
 
-			xTaskCreate(
-				sensorInfoTask,
-				"sensor_info",
-				4096,
-				this,
-				1,
-				&sensorInfoTaskHandle
+			ESP_LOGI(
+				TAG,
+				"Connected to server at %d.%d.%d.%d:%d",
+				address[0],
+				address[1],
+				address[2],
+				address[3],
+				port
 			);
 
+			createOnlineSendTasks();
+			setConnectionStatus(ConnectionStatus::ConnectedToServer);
 			setServerAddress(address, port);
 		},
 	};
@@ -256,21 +286,118 @@ void WifiConnection::handlePacket(
 void WifiConnection::sensorInfoTask(void* userArg) {
 	auto* self = reinterpret_cast<WifiConnection*>(userArg);
 
-	while (true) {
-		auto payload = self->packetBuilder.sensorInfo({
-			.sensorId = 0,
-			.sensorState = 1,
-			.sensorType = 0,
-			.sensorConfigData = 0,
-			.hasCompletedRestCalibration = false,
-			.sensorPosition = 0,
-			.sensorDataType = 0,
-			.tpsCounterAveragedTps = 0,
-			.dataCounterAveragedTps = 0,
-		});
+	auto lastWakeTime = xTaskGetTickCount();
 
+	while (true) {
+		auto& sensors = SensorManager::getInstance().getSensors();
+
+		for (uint8_t i = 0; i < sensors.size(); i++) {
+			SensorDriver& sensor = sensors[i];
+
+			auto payload = self->packetBuilder.sensorInfo({
+				.sensorId = i,
+				.sensorStatus = sensor.getStatus(),
+				.sensorType = sensor.getType(),
+				.sensorConfigData = 0,
+				.hasCompletedRestCalibration = sensor.getRestCalibrated(),
+				.sensorPosition = sensor.getPosition(),
+				.sensorDataType = sensor.getDataType(),
+				.tpsCounterAveragedTps = 0,
+				.dataCounterAveragedTps = 0,
+			});
+
+			self->sendData(payload.data(), payload.size());
+		}
+
+		vTaskDelayUntil(
+			&lastWakeTime,
+			CONFIG_SENSOR_INFO_RATE_SECONDS * 1000 / portTICK_PERIOD_MS
+		);
+	}
+}
+
+void WifiConnection::sensorDataTask(void* userArg) {
+	auto* self = reinterpret_cast<WifiConnection*>(userArg);
+
+	auto lastWakeTime = xTaskGetTickCount();
+	auto lastTempSendTime = xTaskGetTickCount();
+	constexpr auto tempSendRateTicks
+		= 1000 / CONFIG_SENSOR_TEMPERATURE_RATE_HZ / portTICK_PERIOD_MS;
+
+	while (true) {
+		bool sendTemp = xTaskGetTickCount() - lastTempSendTime >= tempSendRateTicks;
+		if (sendTemp) {
+			lastTempSendTime += tempSendRateTicks;
+		}
+
+		// TODO: bundles
+
+		auto& sensors = SensorManager::getInstance().getSensors();
+		for (uint8_t sensorId = 0; sensorId < sensors.size(); sensorId++) {
+			auto& sensor = sensors[sensorId];
+
+			if (sensor.getHasNewFusionState()) {
+				float quat[4];
+				float accel[3];
+				sensor.getFusionState(quat, accel);
+
+				auto payload = self->packetBuilder.rotationData(sensorId, quat);
+				self->sendData(payload.data(), payload.size());
+
+				payload = self->packetBuilder.accel(sensorId, accel);
+				self->sendData(payload.data(), payload.size());
+			}
+
+			if (sendTemp) {
+				auto payload = self->packetBuilder.temperature(
+					sensorId,
+					sensor.getTemperature()
+				);
+				self->sendData(payload.data(), payload.size());
+			}
+		}
+
+		vTaskDelayUntil(
+			&lastWakeTime,
+			1000 / CONFIG_SENSOR_QUAT_RATE_HZ / portTICK_PERIOD_MS
+		);
+	}
+}
+
+void WifiConnection::rssiSendTask(void* userArg) {
+	auto* self = reinterpret_cast<WifiConnection*>(userArg);
+
+	auto lastWakeTime = xTaskGetTickCount();
+
+	while (true) {
+		int rssi;
+		esp_wifi_sta_get_rssi(&rssi);
+
+		auto payload = self->packetBuilder.signalStrength(static_cast<uint8_t>(rssi));
 		self->sendData(payload.data(), payload.size());
 
-		vTaskDelay(CONFIG_SENSOR_INFO_RATE_SECONDS * 1000 / portTICK_PERIOD_MS);
+		vTaskDelayUntil(
+			&lastWakeTime,
+			CONFIG_TRACKER_RSSI_RATE_SECONDS * 1000 / portTICK_PERIOD_MS
+		);
+	}
+}
+
+void WifiConnection::createOnlineSendTasks() {
+	TaskHandle_t task;
+
+	xTaskCreate(sensorInfoTask, "sensor_info", 4096, this, 1, &task);
+	onlineSendTasks.push_back(task);
+
+	xTaskCreate(sensorDataTask, "sensor_data", 4096, this, 1, &task);
+	onlineSendTasks.push_back(task);
+
+	xTaskCreate(rssiSendTask, "rssi", 4096, this, 1, &task);
+	onlineSendTasks.push_back(task);
+}
+
+void WifiConnection::stopOnlineSendTasks() {
+	for (auto task : onlineSendTasks) {
+		vTaskDelete(task);
 	}
 }

@@ -24,7 +24,7 @@ public:
 	void insert(T* data, size_t count) {
 		auto start = bytes.size();
 		bytes.resize(start + sizeof(T) * count);
-		memcpy(bytes.data() + start, &data, sizeof(T) * count);
+		memcpy(bytes.data() + start, data, sizeof(T) * count);
 	}
 
 	void insert(std::string&& data) {

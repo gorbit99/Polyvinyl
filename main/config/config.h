@@ -53,3 +53,11 @@ constexpr MCUType MCU_TYPE = MCUType::ESP32C3;
 #endif
 
 constexpr uint32_t PROTOCOL_VERSION = 20;
+
+#ifdef CONFIG_TRACKER_TYPE_ROTATION
+constexpr TrackerType TRACKER_TYPE = TrackerType::Rotation;
+#elifdef CONFIG_TRACKER_TYPE_GLOVE_LEFT
+constexpr TrackerType TRACKER_TYPE = TrackerType::GloveLeft;
+#elifdef CONFIG_TRACKER_TYPE_GLOVE_RIGHT
+constexpr TrackerType TRACKER_TYPE = TrackerType::GloveRight;
+#endif

@@ -2,6 +2,7 @@ idf_component_register(SRCS
         "main.cpp"
         "interfaces/i2c-driver.cpp"
         "interfaces/i2c-register-interface.cpp"
+        "interfaces/adc-driver.cpp"
         "networking/connection.cpp"
         "networking/packet-builder.cpp"
         "networking/packet-container.cpp"
@@ -9,4 +10,7 @@ idf_component_register(SRCS
         "networking/wifi-connection.cpp"
         "sensors/sensor-reader.cpp"
         "sensors/sensor-driver.cpp"
+        "sensors/sensor-manager.cpp"
+        "sensors/rest-calibration-detector.cpp"
+        "peripherals/battery.cpp"
         INCLUDE_DIRS ".")

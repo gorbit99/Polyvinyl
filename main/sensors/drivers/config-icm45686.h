@@ -224,10 +224,12 @@ struct Consts {
 	static constexpr float TEMP_ODR_HZ = std::max(GYRO_ODR_HZ, ACCEL_ODR_HZ);
 
 	static constexpr uint8_t GYRO_BITS = 20;
-	static constexpr uint8_t ACCEL_BITS = 19;
+	static constexpr uint8_t ACCEL_BITS = 20;
 
-	static constexpr float GYRO_SENSITIVITY = GYRO_FULL_SCALE_DPS / (1 << GYRO_BITS);
-	static constexpr float ACCEL_SENSITIVITY = ACCEL_FULL_SCALE_G / (1 << ACCEL_BITS);
+	static constexpr float GYRO_SENSITIVITY
+		= GYRO_FULL_SCALE_DPS / (1 << (GYRO_BITS - 1));
+	static constexpr float ACCEL_SENSITIVITY
+		= ACCEL_FULL_SCALE_G / (1 << (ACCEL_BITS - 1));
 };
 
 }  // namespace

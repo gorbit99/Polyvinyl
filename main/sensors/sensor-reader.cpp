@@ -14,7 +14,7 @@ static const char* TAG = "SENSORREADER";
 void SensorReader::init() {
 	readEntriesMutex = xSemaphoreCreateMutex();
 
-	xTaskCreate(readTask, "sensor_read_task", 4096, this, 1, nullptr);
+	xTaskCreate(readTask, "sensor_read_task", 4096, this, 4, nullptr);
 }
 
 QueueHandle_t SensorReader::registerSensor(ReadDescriptor&& descriptor) {
@@ -51,6 +51,8 @@ void SensorReader::readTask(void* userArg) {
 		}
 
 		xSemaphoreGive(self->readEntriesMutex);
+
+		vTaskDelay(1);
 	}
 }
 
@@ -62,8 +64,6 @@ void SensorReader::readFrom(ReadEntry& entry) {
 		2
 	);
 	packetCount &= entry.dataCountMask;
-
-	printf("%d\n", packetCount);
 
 	if (packetCount == 0) {
 		return;

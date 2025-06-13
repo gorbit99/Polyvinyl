@@ -8,6 +8,7 @@
 #include "portmacro.h"
 #include "register-helper.h"
 #include "sensor-descriptor.h"
+#include "utils/consts.h"
 
 namespace ICM45686 {
 
@@ -84,13 +85,14 @@ struct Packet {
 #pragma pack(pop)
 
 inline float getGyroValue(Packet& packet, size_t axis) {
-	auto raw = static_cast<int32_t>(packet.gyro[axis]) << 4 | (packet.lsb[axis] & 0x0f);
+	int32_t raw
+		= static_cast<int32_t>(packet.gyro[axis]) << 4 | (packet.lsb[axis] & 0x0f);
 	return raw * Consts::GYRO_SENSITIVITY;
 }
 
 inline float getAccelValue(Packet& packet, size_t axis) {
-	auto raw = static_cast<int32_t>(packet.accel[axis]) << 4
-			 | (packet.lsb[axis] & 0xf0) >> 4;
+	int32_t raw = static_cast<int32_t>(packet.accel[axis]) << 4
+				| (packet.lsb[axis] & 0xf0) >> 4;
 	return raw * Consts::ACCEL_SENSITIVITY;
 }
 
@@ -98,6 +100,7 @@ inline float getAccelValue(Packet& packet, size_t axis) {
 
 SensorDescriptor DESCRIPTOR{
 	.name = "ICM-45686",
+    .sensorType = SensorType::ICM45686,
 	.deviceIdBase = 0x68,
 	.whoAmIRegister = 0x72,
 	.expectedWhoAmI = static_cast<uint8_t>(0xe9),
@@ -142,6 +145,7 @@ SensorDescriptor DESCRIPTOR{
 					.fifoEs1En = false,
 				}
 			);
+
 			return true;
 		},
 	.packetSize = static_cast<uint8_t>(sizeof(Packet)),
@@ -152,6 +156,7 @@ SensorDescriptor DESCRIPTOR{
 		[](const uint8_t* data, SampleInterface& sampleInterface) {
 			Packet packet;
 			memcpy(&packet, data, sizeof(Packet));
+
 			float gyroSample[]{
 				getGyroValue(packet, 0),
 				getGyroValue(packet, 1),

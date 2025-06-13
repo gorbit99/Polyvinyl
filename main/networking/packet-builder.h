@@ -15,7 +15,12 @@ class PacketBuilder {
 public:
 	PacketContainer heartBeat();
 	PacketContainer handShake();
+	PacketContainer accel(uint8_t sensorId, float accel[3]);
+	PacketContainer batteryLevel(float voltage, float percentage);
 	PacketContainer sensorInfo(SensorInfoPacket&& packetData);
+	PacketContainer rotationData(uint8_t sensorId, float quat[4]);
+	PacketContainer signalStrength(uint8_t rssi);
+	PacketContainer temperature(uint8_t sensorId, float temperature);
 
 private:
 	uint64_t getNextPacketIndex();

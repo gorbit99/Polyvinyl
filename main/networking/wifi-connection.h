@@ -6,12 +6,13 @@
 
 #include <cstdint>
 #include <string_view>
+#include <vector>
 
 #include "freertos/idf_additions.h"
 #include "lwip/sockets.h"
+#include "networking/packet-builder.h"
 #include "networking/packet-container.h"
 #include "networking/packet-parser.h"
-#include "networking/packet-builder.h"
 
 class WifiConnection final : public Connection {
 public:
@@ -29,25 +30,29 @@ private:
 	);
 
 	void setServerAddress(std::string_view address, uint16_t port);
-	void handlePacket(PacketContainer&& rawPacket, sockaddr_storage &&sourceAddress);
+	void handlePacket(PacketContainer&& rawPacket, sockaddr_storage&& sourceAddress);
+	void createOnlineSendTasks();
+	void stopOnlineSendTasks();
 
 	static void serverSearchTask(void* userArg);
 	static void udpReceiveTask(void* userArg);
 	static void sensorInfoTask(void* userArg);
+	static void sensorDataTask(void* userArg);
+	static void rssiSendTask(void* userArg);
 
 	static constexpr std::string_view BROADCAST_ADDRESS = "255.255.255.255";
 	static constexpr uint16_t BASE_PORT = 6969;
-	
-    size_t connectionRetries = 0;
+
+	size_t connectionRetries = 0;
 	EventGroupHandle_t eventGroup;
 	sockaddr_in destinationAddress;
 
-    TaskHandle_t serverSearchTaskHandle = nullptr;
+	std::vector<TaskHandle_t> onlineSendTasks;
+	TaskHandle_t serverSearchTaskHandle = nullptr;
 	TaskHandle_t receiveTaskHandle = nullptr;
-    TaskHandle_t sensorInfoTaskHandle = nullptr;
 
 	PacketParser packetParser;
-    PacketBuilder packetBuilder;
+	PacketBuilder packetBuilder;
 
 	int socketHandle = 0;
 
