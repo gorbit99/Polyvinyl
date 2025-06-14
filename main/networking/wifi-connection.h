@@ -4,6 +4,7 @@
 #include <esp_wifi_types_generic.h>
 #include <networking/connection.h>
 
+#include <atomic>
 #include <cstdint>
 #include <string_view>
 #include <vector>
@@ -13,6 +14,7 @@
 #include "networking/packet-builder.h"
 #include "networking/packet-container.h"
 #include "networking/packet-parser.h"
+#include "networking/wifi-socket.h"
 
 class WifiConnection final : public Connection {
 public:
@@ -22,41 +24,22 @@ public:
 	void sendData(const uint8_t* data, size_t length) override;
 
 private:
-	static void eventHandler(
-		void* userArg,
-		esp_event_base_t eventBase,
-		int32_t eventId,
-		void* eventData
-	);
-
-	void setServerAddress(std::string_view address, uint16_t port);
 	void handlePacket(PacketContainer&& rawPacket, sockaddr_storage&& sourceAddress);
-	void createOnlineSendTasks();
-	void stopOnlineSendTasks();
+	void createOnlineSendTimers();
+	void startOnlineSendTimers();
+	void stopOnlineSendTimers();
+	std::vector<TimerHandle_t> onlineSendTimers;
+	TimerHandle_t serverSearchTimerHandle = nullptr;
 
-	static void serverSearchTask(void* userArg);
-	static void udpReceiveTask(void* userArg);
-	static void sensorInfoTask(void* userArg);
-	static void sensorDataTask(void* userArg);
-	static void rssiSendTask(void* userArg);
+	static void serverSearchTimer(TimerHandle_t handle);
+	static void sensorInfoTimer(TimerHandle_t handle);
+	static void sensorDataTimer(TimerHandle_t handle);
+	static void rssiSendTimer(TimerHandle_t handle);
+	static void sensorTempFlagTimer(TimerHandle_t handle);
 
-	static constexpr std::string_view BROADCAST_ADDRESS = "255.255.255.255";
-	static constexpr uint16_t BASE_PORT = 6969;
-
-	size_t connectionRetries = 0;
-	EventGroupHandle_t eventGroup;
-	sockaddr_in destinationAddress;
-
-	std::vector<TaskHandle_t> onlineSendTasks;
-	TaskHandle_t serverSearchTaskHandle = nullptr;
-	TaskHandle_t receiveTaskHandle = nullptr;
+	std::atomic<bool> shouldSendTemp = false;
 
 	PacketParser packetParser;
 	PacketBuilder packetBuilder;
-
-	int socketHandle = 0;
-
-	static constexpr auto WIFI_CONNECTED_BIT = BIT(0);
-	static constexpr auto WIFI_CONNECTION_FAILED_BIT = BIT(1);
-	static constexpr auto RETRY_COUNT = 1u;
+	WifiSocket socket;
 };

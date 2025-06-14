@@ -11,6 +11,7 @@
     - [X] Sending sensor output to server
     - [X] Bundles
     - [ ] Feature flags
+    - [ ] Detecting disconnections
 - Interfaces
     - [X] I2C
     - [ ] SPI

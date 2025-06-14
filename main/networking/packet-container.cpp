@@ -10,7 +10,7 @@ PacketContainer::PacketContainer(SendPacketId packetId, uint64_t packetIndex) {
 	memcpy(bytes.data() + sizeof(SendPacketId), &packetIndexBE, sizeof(packetIndexBE));
 }
 
-PacketContainer::PacketContainer(uint8_t* data, size_t length) {
+PacketContainer::PacketContainer(const uint8_t* data, size_t length) {
 	bytes.resize(length);
 	memcpy(bytes.data(), data, length);
 }

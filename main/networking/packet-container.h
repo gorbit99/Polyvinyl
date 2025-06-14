@@ -11,7 +11,7 @@
 class PacketContainer {
 public:
 	PacketContainer(SendPacketId packetId, uint64_t packetIndex);
-	PacketContainer(uint8_t* data, size_t length);
+	PacketContainer(const uint8_t* data, size_t length);
 
 	template <typename T>
 	void insert(T&& data) {
