@@ -21,8 +21,8 @@
 
 IMUs (only that make sense for now)
 
-- [ ] ICM45686 (Missing clock support)
-- [ ] ICM45605
+- [X] ICM45686
+- [X] ICM45605
 - [ ] BNO08X
 - [ ] LSM6DSR
 - [ ] LSM6DSO

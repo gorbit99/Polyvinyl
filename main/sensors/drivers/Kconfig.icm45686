@@ -1,5 +1,12 @@
 menu "ICM45686"
 
+    config ICM45686_ENABLE_CLOCK
+        bool "Enable Clock"
+        default y
+        help
+            Enables the clock feature of the ICM-45686 to improve its sensitivity.
+            Disabling this will significantly worsen some aspects of the sensor.
+
     choice ICM45686_GYRO_ODR
         prompt "ICM-45686 Gyro ODR (Hz)"
         help

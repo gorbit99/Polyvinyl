@@ -7,6 +7,7 @@
 #include "freertos/idf_additions.h"
 #include "portmacro.h"
 #include "register-helper.h"
+#include "sdkconfig.h"
 #include "sensor-descriptor.h"
 #include "utils/consts.h"
 
@@ -63,6 +64,20 @@ struct RegisterMap {
 		};
 		GyroMode gyroMode : 2;
 	};
+	struct IOCPadScenarioOvrd : Register<0x31> {
+		enum class Int2Config : uint8_t {
+			INT2 = 0b00,
+			FSYNC = 0b01,
+			CLKIN = 0b10,
+		};
+		Int2Config padsInt2CfgOvrdVal : 2;
+		bool padsInt2CfgOvrd : 1;
+	};
+	struct RTCConfig : Register<0x26> {
+		uint8_t reserved : 4 = 0x3;
+		bool rtcMode : 1;
+		bool rtcAlign : 1;
+	};
 	struct FifoCount0 : Register<0x12> {};
 	struct FifoData : Register<0x14> {};
 };
@@ -98,11 +113,14 @@ inline float getAccelValue(Packet& packet, size_t axis) {
 
 }  // namespace
 
-SensorDescriptor DESCRIPTOR{
+SensorDescriptor DESCRIPTOR {
 	.name = "ICM-45686",
 	.deviceIdBase = 0x68,
 	.whoAmIRegister = 0x72,
-	.expectedWhoAmI = IMUVariant{0xe9, SensorType::ICM45686},
+	.expectedWhoAmI = std::vector{
+        IMUVariant{0xe9, SensorType::ICM45686},
+        IMUVariant{0xe5, SensorType::ICM45605},
+    },
 	.setup =
 		[](SensorType sensorType, RegisterInterface& interface) {
 			interface.writeRegister(RegisterMap::RegMisc2{.softRst = 1});
@@ -144,6 +162,20 @@ SensorDescriptor DESCRIPTOR{
 					.fifoEs1En = false,
 				}
 			);
+
+            if (sensorType == SensorType::ICM45686 && CONFIG_ICM45686_ENABLE_CLOCK) {
+                interface.writeRegister(
+                    RegisterMap::IOCPadScenarioOvrd {
+                        .padsInt2CfgOvrdVal = RegisterMap::IOCPadScenarioOvrd::Int2Config::CLKIN,
+                        .padsInt2CfgOvrd = true,
+                    }
+                );
+                interface.writeRegister(
+                    RegisterMap::RTCConfig {
+                        .rtcMode = true,
+                    }
+                );
+            }
 
 			return true;
 		},
