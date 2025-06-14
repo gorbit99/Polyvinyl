@@ -22,20 +22,25 @@ bool SensorDriver::init() {
 	for (auto& sensor : supportedSensors) {
 		auto result = checkSensor(sensor);
 
-		if (result == Status::NotFound) {
+		if (result) {
+			foundSensor = sensor;
+
+			status = Status::Ok;
+			sensorType = *result;
+			vqf = VQF{sensor.vqfParams, 1 / sensor.gyroRateHz, 1 / sensor.accelRateHz};
+			setupSensorRead();
+			break;
+		}
+
+		if (result.error() == Status::NotFound) {
 			continue;
 		}
 
-		if (result == Status::Errored) {
+		if (result.error() == Status::Errored) {
 			status = Status::Errored;
 			break;
 		}
 
-		foundSensor = sensor;
-
-		status = Status::Ok;
-		vqf = VQF{sensor.vqfParams, 1 / sensor.gyroRateHz, 1 / sensor.accelRateHz};
-		setupSensorRead();
 		break;
 	}
 
@@ -71,44 +76,56 @@ float SensorDriver::getTemperature() {
 	return result;
 }
 
-SensorDriver::Status SensorDriver::checkSensor(SensorDescriptor& sensor) {
+std::expected<SensorType, SensorDriver::Status> SensorDriver::checkSensor(
+	SensorDescriptor& sensor
+) {
 	// TODO: handle secondary device address
 	ESP_LOGI(TAG, "Trying %s", sensor.name);
 
 	if (!I2CDriver::getInstance().isDeviceDetected(sensor.deviceIdBase)) {
 		ESP_LOGD(TAG, "%s not on I2C bus", sensor.name);
-		return Status::NotFound;
+		return std::unexpected{Status::NotFound};
 	}
 
 	auto interface = std::make_unique<I2CRegisterInterface>(sensor.deviceIdBase);
 
 	auto whoAmI = interface->readByte(sensor.whoAmIRegister);
 
-	if (std::holds_alternative<uint8_t>(sensor.expectedWhoAmI)) {
-		if (std::get<uint8_t>(sensor.expectedWhoAmI) != whoAmI) {
-			ESP_LOGD(TAG, "%s didn't pass the whoAmI check", sensor.name);
-			return Status::NotFound;
-		}
-	} else if (std::holds_alternative<std::vector<uint8_t>>(sensor.expectedWhoAmI)) {
-		auto& values = std::get<std::vector<uint8_t>>(sensor.expectedWhoAmI);
+	SensorType foundSensorType = SensorType::Unknown;
 
-		bool match = std::find(values.begin(), values.end(), whoAmI) != values.end();
-
-		if (!match) {
+	if (std::holds_alternative<IMUVariant>(sensor.expectedWhoAmI)) {
+		if (std::get<IMUVariant>(sensor.expectedWhoAmI).whoAmI != whoAmI) {
 			ESP_LOGD(TAG, "%s didn't pass the whoAmI check", sensor.name);
-			return Status::NotFound;
+			return std::unexpected{Status::NotFound};
 		}
+
+		foundSensorType = std::get<IMUVariant>(sensor.expectedWhoAmI).sensorType;
+	} else if (std::holds_alternative<std::vector<IMUVariant>>(sensor.expectedWhoAmI)) {
+		auto& values = std::get<std::vector<IMUVariant>>(sensor.expectedWhoAmI);
+
+		auto match
+			= std::find_if(values.begin(), values.end(), [&](IMUVariant& expected) {
+				  return expected.whoAmI == whoAmI;
+			  });
+
+		if (match == values.end()) {
+			ESP_LOGD(TAG, "%s didn't pass the whoAmI check", sensor.name);
+			return std::unexpected{Status::NotFound};
+		}
+
+		foundSensorType = match->sensorType;
+		
 	}
 
 	ESP_LOGI(TAG, "Found %s! Initializing", sensor.name);
-	if (!sensor.setup(*interface)) {
+	if (!sensor.setup(foundSensorType, *interface)) {
 		ESP_LOGE(TAG, "%s couldn't be initialized!", sensor.name);
-		return Status::Errored;
+		return std::unexpected{Status::Errored};
 	}
 
 	this->interface = std::move(interface);
 
-	return Status::Ok;
+	return {foundSensorType};
 }
 
 void SensorDriver::setupSensorRead() {
@@ -142,7 +159,6 @@ void SensorDriver::packetTask(void* userArg) {
 				self->vqf.updateGyr(sample);
 				xSemaphoreGive(self->vqfMutex);
 				self->hasNewFusionState = true;
-				
 			},
 		.provideAccelSample =
 			[self](float sample[3]) {
@@ -173,7 +189,7 @@ void SensorDriver::packetTask(void* userArg) {
 
 SensorDriver::Status SensorDriver::getStatus() const { return status; }
 
-SensorType SensorDriver::getType() const { return foundSensor.sensorType; }
+SensorType SensorDriver::getType() const { return sensorType; }
 
 bool SensorDriver::getRestCalibrated() const {
 	return restCalibrationDetector.getWasCalibrated();

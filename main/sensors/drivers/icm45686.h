@@ -100,12 +100,11 @@ inline float getAccelValue(Packet& packet, size_t axis) {
 
 SensorDescriptor DESCRIPTOR{
 	.name = "ICM-45686",
-    .sensorType = SensorType::ICM45686,
 	.deviceIdBase = 0x68,
 	.whoAmIRegister = 0x72,
-	.expectedWhoAmI = static_cast<uint8_t>(0xe9),
+	.expectedWhoAmI = IMUVariant{0xe9, SensorType::ICM45686},
 	.setup =
-		[](RegisterInterface& interface) {
+		[](SensorType sensorType, RegisterInterface& interface) {
 			interface.writeRegister(RegisterMap::RegMisc2{.softRst = 1});
 			vTaskDelay(35 / portTICK_PERIOD_MS);
 			while (interface.readRegister<typename RegisterMap::RegMisc2>().softRst)

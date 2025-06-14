@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <utility>
 #include <variant>
 #include <vector>
 #include <vqf.hpp>
@@ -15,16 +16,20 @@ struct SampleInterface {
 	std::function<void(float)> provideTempSample;
 };
 
+struct IMUVariant {
+    uint8_t whoAmI;
+    SensorType sensorType;
+};
+
 struct SensorDescriptor {
 	const char* name;
-	SensorType sensorType;
 
 	uint8_t deviceIdBase;
 
 	uint8_t whoAmIRegister;
-	std::variant<uint8_t, std::vector<uint8_t>> expectedWhoAmI;
+	std::variant<IMUVariant, std::vector<IMUVariant>> expectedWhoAmI;
 
-	std::function<bool(RegisterInterface&)> setup;
+	std::function<bool(SensorType, RegisterInterface&)> setup;
 
 	uint8_t packetSize;
 	uint8_t dataCountRegister;

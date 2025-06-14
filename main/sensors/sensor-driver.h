@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <expected>
 #include <functional>
 #include <memory>
 #include <variant>
@@ -35,14 +36,15 @@ public:
 	SensorDataType getDataType() const;
 
 private:
-	Status checkSensor(SensorDescriptor& sensor);
+	std::expected<SensorType, Status> checkSensor(SensorDescriptor& sensor);
 	void setupSensorRead();
 
 	static void packetTask(void* userArg);
 	QueueHandle_t packetQueue;
 	char packetTaskName[configMAX_TASK_NAME_LEN];
 
-	SensorDescriptor foundSensor = {.sensorType = SensorType::Empty};
+	SensorDescriptor foundSensor = {};
+	SensorType sensorType = SensorType::Empty;
 	Status status = Status::NotFound;
 	std::unique_ptr<RegisterInterface> interface;
 
