@@ -3,6 +3,7 @@
 #include <esp_wifi.h>
 
 #include "config/config.h"
+#include "networking/packet-bundle.h"
 #include "networking/packets.h"
 
 uint64_t PacketBuilder::getNextPacketIndex() {
@@ -93,9 +94,13 @@ PacketContainer PacketBuilder::signalStrength(uint8_t rssi) {
 PacketContainer PacketBuilder::temperature(uint8_t sensorId, float temperature) {
 	PacketContainer container{SendPacketId::Temperature, getNextPacketIndex()};
 
-    container.insert(TemperaturePacket{
-        .sensorId = sensorId,
-        .temperature = temperature,
-    });
-    return container;
+	container.insert(
+		TemperaturePacket{
+			.sensorId = sensorId,
+			.temperature = temperature,
+		}
+	);
+	return container;
 }
+
+PacketBundle PacketBuilder::bundle() { return PacketBundle(getNextPacketIndex()); }

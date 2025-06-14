@@ -7,6 +7,7 @@ idf_component_register(SRCS
         "networking/packet-builder.cpp"
         "networking/packet-container.cpp"
         "networking/packet-parser.cpp"
+        "networking/packet-bundle.cpp"
         "networking/wifi-connection.cpp"
         "sensors/sensor-reader.cpp"
         "sensors/sensor-driver.cpp"

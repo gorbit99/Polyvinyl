@@ -8,6 +8,7 @@
 #include <optional>
 #include <string>
 
+#include "networking/packet-bundle.h"
 #include "packet-container.h"
 #include "packets.h"
 
@@ -21,6 +22,8 @@ public:
 	PacketContainer rotationData(uint8_t sensorId, float quat[4]);
 	PacketContainer signalStrength(uint8_t rssi);
 	PacketContainer temperature(uint8_t sensorId, float temperature);
+
+	PacketBundle bundle();
 
 private:
 	uint64_t getNextPacketIndex();

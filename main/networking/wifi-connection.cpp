@@ -19,6 +19,7 @@
 
 #include "lwip/sockets.h"
 #include "networking/packet-builder.h"
+#include "networking/packet-bundle.h"
 #include "networking/packet-parser.h"
 #include "peripherals/battery.h"
 #include "sensors/sensor-manager.h"
@@ -330,7 +331,9 @@ void WifiConnection::sensorDataTask(void* userArg) {
 			lastTempSendTime += tempSendRateTicks;
 		}
 
-		// TODO: bundles
+		// TODO: assert that bundles are supported by the server
+		// They are first class citizens here, not optional
+		PacketBundle bundle = self->packetBuilder.bundle();
 
 		auto& sensors = SensorManager::getInstance().getSensors();
 		for (uint8_t sensorId = 0; sensorId < sensors.size(); sensorId++) {
@@ -342,10 +345,10 @@ void WifiConnection::sensorDataTask(void* userArg) {
 				sensor.getFusionState(quat, accel);
 
 				auto payload = self->packetBuilder.rotationData(sensorId, quat);
-				self->sendData(payload.data(), payload.size());
+				bundle.insert(std::move(payload));
 
 				payload = self->packetBuilder.accel(sensorId, accel);
-				self->sendData(payload.data(), payload.size());
+				bundle.insert(std::move(payload));
 			}
 
 			if (sendTemp) {
@@ -353,9 +356,11 @@ void WifiConnection::sensorDataTask(void* userArg) {
 					sensorId,
 					sensor.getTemperature()
 				);
-				self->sendData(payload.data(), payload.size());
+				bundle.insert(std::move(payload));
 			}
 		}
+
+		self->sendData(bundle.data(), bundle.size());
 
 		vTaskDelayUntil(
 			&lastWakeTime,

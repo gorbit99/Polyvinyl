@@ -9,7 +9,7 @@
     - [X] Connecting to Wi-Fi
     - [X] Finding server
     - [X] Sending sensor output to server
-    - [ ] Bundles
+    - [X] Bundles
     - [ ] Feature flags
 - Interfaces
     - [X] I2C
